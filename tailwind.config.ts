@@ -47,6 +47,15 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        farm: {
+          primary: "hsl(var(--farm-primary))",
+          secondary: "hsl(var(--farm-secondary))",
+          background: "hsl(var(--farm-background))",
+          card: "hsl(var(--farm-card))",
+          success: "hsl(var(--farm-success))",
+          warning: "hsl(var(--farm-warning))",
+          danger: "hsl(var(--farm-danger))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
