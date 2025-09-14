@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,11 +19,41 @@ import {
   Activity
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { User } from '@supabase/supabase-js';
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('home');
+  const [user, setUser] = useState<User | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Check authentication status
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        navigate('/login');
+        return;
+      }
+      setUser(session.user);
+    };
+
+    checkAuth();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (!session?.user) {
+          navigate('/login');
+        } else {
+          setUser(session.user);
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   // Mock data
   const farmerData = {
@@ -46,12 +76,21 @@ const Dashboard = () => {
     { id: 'leaderboard', label: 'Leaderboard', icon: Trophy },
   ];
 
-  const handleLogout = () => {
-    toast({
-      title: "Logged Out",
-      description: "You have been successfully logged out.",
-    });
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast({
+        title: "Logged Out",
+        description: "You have been successfully logged out.",
+      });
+      navigate('/login');
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to log out. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const renderContent = () => {
@@ -298,7 +337,7 @@ const Dashboard = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-foreground">
-              Welcome, {farmerData.name}
+              Welcome, {user?.email || 'User'}
             </h1>
             <p className="text-sm text-muted-foreground">
               {farmerData.location} • {farmerData.farmArea}
