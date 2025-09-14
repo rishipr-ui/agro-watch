@@ -1,57 +1,112 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Wheat, Phone, Lock, Shield } from 'lucide-react';
+import { Wheat, Mail, Lock, UserPlus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { User, Session } from '@supabase/supabase-js';
 
 const Login = () => {
-  const [phoneNumber, setPhoneNumber] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [otp, setOtp] = useState('');
-  const [step, setStep] = useState<'login' | 'otp'>('login');
+  const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          navigate('/dashboard');
+        }
+      }
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        navigate('/dashboard');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simulate login process
-    setTimeout(() => {
-      setStep('otp');
-      setIsLoading(false);
-      toast({
-        title: "OTP Sent",
-        description: "Please check your phone for the verification code.",
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
-    }, 1000);
-  };
 
-  const handleOtpVerification = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    
-    // Simulate OTP verification
-    setTimeout(() => {
-      setIsLoading(false);
-      if (otp === '123456') {
+      if (error) {
         toast({
-          title: "Login Successful",
-          description: "Welcome to AgroWatch!",
-        });
-        navigate('/dashboard');
-      } else {
-        toast({
-          title: "Invalid OTP",
-          description: "Please enter the correct verification code.",
+          title: "Login Failed",
+          description: error.message,
           variant: "destructive",
         });
       }
-    }, 1000);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`
+        }
+      });
+
+      if (error) {
+        toast({
+          title: "Sign Up Failed", 
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Sign Up Successful",
+          description: "Please check your email to confirm your account.",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -70,116 +125,72 @@ const Login = () => {
       <Card className="w-full max-w-md bg-card border-border">
         <CardHeader className="text-center">
           <CardTitle className="text-xl font-semibold text-foreground">
-            {step === 'login' ? 'Welcome Back' : 'Verify Your Identity'}
+            {isLogin ? 'Welcome Back' : 'Create Account'}
           </CardTitle>
           <CardDescription className="text-muted-foreground">
-            {step === 'login' 
+            {isLogin 
               ? 'Sign in to access your farm dashboard' 
-              : 'Enter the verification code sent to your phone'
+              : 'Join AgroWatch to manage your farm efficiently'
             }
           </CardDescription>
         </CardHeader>
         
         <CardContent>
-          {step === 'login' ? (
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="phone" className="text-sm font-medium text-foreground">
-                  Phone Number
-                </Label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="+91 98765 43210"
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
-                    className="pl-10 bg-input border-border"
-                    required
-                  />
-                </div>
+          <form onSubmit={isLogin ? handleLogin : handleSignUp} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-sm font-medium text-foreground">
+                Email Address
+              </Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="farmer@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="pl-10 bg-input border-border"
+                  required
+                />
               </div>
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm font-medium text-foreground">
-                  Password
-                </Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 bg-input border-border"
-                    required
-                  />
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-sm font-medium text-foreground">
+                Password
+              </Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pl-10 bg-input border-border"
+                  required
+                />
               </div>
+            </div>
 
-              <Button 
-                type="submit" 
-                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                disabled={isLoading}
+            <Button 
+              type="submit" 
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+              disabled={isLoading}
+            >
+              {isLoading ? (isLogin ? 'Signing In...' : 'Creating Account...') : (isLogin ? 'Sign In' : 'Create Account')}
+            </Button>
+
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => setIsLogin(!isLogin)}
+                className="text-sm text-primary hover:underline"
               >
-                {isLoading ? 'Signing In...' : 'Sign In'}
-              </Button>
-
-              <div className="text-center">
-                <button
-                  type="button"
-                  onClick={() => navigate('/register')}
-                  className="text-sm text-primary hover:underline"
-                >
-                  New farmer? Register your farm
-                </button>
-              </div>
-            </form>
-          ) : (
-            <form onSubmit={handleOtpVerification} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="otp" className="text-sm font-medium text-foreground">
-                  Verification Code
-                </Label>
-                <div className="relative">
-                  <Shield className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="otp"
-                    type="text"
-                    placeholder="Enter 6-digit code"
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
-                    className="pl-10 bg-input border-border text-center tracking-wider"
-                    maxLength={6}
-                    required
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground text-center">
-                  Code sent to {phoneNumber}
-                </p>
-              </div>
-
-              <Button 
-                type="submit" 
-                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                disabled={isLoading}
-              >
-                {isLoading ? 'Verifying...' : 'Verify & Sign In'}
-              </Button>
-
-              <div className="text-center">
-                <button
-                  type="button"
-                  onClick={() => setStep('login')}
-                  className="text-sm text-muted-foreground hover:text-primary"
-                >
-                  ← Back to login
-                </button>
-              </div>
-            </form>
-          )}
+                {isLogin ? 'New farmer? Create an account' : 'Already have an account? Sign in'}
+              </button>
+            </div>
+          </form>
         </CardContent>
       </Card>
     </div>
