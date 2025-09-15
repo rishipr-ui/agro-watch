@@ -12,7 +12,6 @@ import { User, Session } from '@supabase/supabase-js';
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -45,45 +44,22 @@ const Login = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  const handleAuth = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
     try {
-      if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-        if (error) {
-          toast({
-            title: "Login Failed",
-            description: error.message,
-            variant: "destructive",
-          });
-        }
-      } else {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/`
-          }
+      if (error) {
+        toast({
+          title: "Login Failed",
+          description: error.message,
+          variant: "destructive",
         });
-
-        if (error) {
-          toast({
-            title: "Sign Up Failed", 
-            description: error.message,
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Sign Up Successful",
-            description: "Please check your email to confirm your account.",
-          });
-        }
       }
     } catch (error) {
       toast({
@@ -112,18 +88,15 @@ const Login = () => {
       <Card className="w-full max-w-md bg-card border-border">
         <CardHeader className="text-center">
           <CardTitle className="text-xl font-semibold text-foreground">
-            {isLogin ? 'Welcome Back' : 'Create Account'}
+            Welcome Back
           </CardTitle>
           <CardDescription className="text-muted-foreground">
-            {isLogin 
-              ? 'Sign in to access your farm dashboard' 
-              : 'Join AgroWatch to manage your farm efficiently'
-            }
+            Sign in to access your farm dashboard
           </CardDescription>
         </CardHeader>
         
         <CardContent>
-          <form onSubmit={handleAuth} className="space-y-4">
+          <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm font-medium text-foreground">
                 Email Address
@@ -165,16 +138,16 @@ const Login = () => {
               className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
               disabled={isLoading}
             >
-              {isLoading ? (isLogin ? 'Signing In...' : 'Creating Account...') : (isLogin ? 'Sign In' : 'Create Account')}
+              {isLoading ? 'Signing In...' : 'Sign In'}
             </Button>
 
             <div className="text-center">
               <button
                 type="button"
-                onClick={() => setIsLogin(!isLogin)}
+                onClick={() => navigate('/register')}
                 className="text-sm text-primary hover:underline"
               >
-                {isLogin ? 'New farmer? Create an account' : 'Already have an account? Sign in'}
+                New farmer? Create an account
               </button>
             </div>
           </form>
