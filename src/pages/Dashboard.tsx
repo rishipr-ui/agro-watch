@@ -25,21 +25,37 @@ import { User } from '@supabase/supabase-js';
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('home');
   const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check authentication status
-    const checkAuth = async () => {
+    // Check authentication status and fetch profile
+    const checkAuthAndFetchProfile = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) {
         navigate('/login');
         return;
       }
       setUser(session.user);
+      
+      // Fetch user profile data
+      const { data: profileData, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching profile:', error);
+      } else {
+        setProfile(profileData);
+      }
+      setLoading(false);
     };
 
-    checkAuth();
+    checkAuthAndFetchProfile();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -55,11 +71,24 @@ const Dashboard = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  // Mock data
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading your farm data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Farm data from user profile
   const farmerData = {
-    name: "John Smith",
-    location: "Green Valley, CA",
-    farmArea: "5 acres",
+    name: profile?.full_name || user?.email || "User",
+    location: profile?.farm_location || "Location not set", 
+    farmArea: profile?.farm_area || "Area not set",
+    animalType: profile?.animal_type || "Not specified",
+    budget: profile?.budget || "Not set",
     totalSheds: 3,
     totalAnimals: 250,
     mortalityRate: 2.1,
@@ -337,11 +366,16 @@ const Dashboard = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-foreground">
-              Welcome, {user?.email || 'User'}
+              Welcome, {farmerData.name}
             </h1>
             <p className="text-sm text-muted-foreground">
               {farmerData.location} • {farmerData.farmArea}
             </p>
+            {farmerData.animalType !== "Not specified" && (
+              <p className="text-xs text-muted-foreground">
+                Primary: {farmerData.animalType} • Budget: {farmerData.budget}
+              </p>
+            )}
           </div>
           <Button 
             variant="outline" 

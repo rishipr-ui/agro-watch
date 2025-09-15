@@ -16,7 +16,11 @@ export type Database = {
     Tables: {
       profiles: {
         Row: {
+          animal_type: string | null
+          budget: string | null
           created_at: string
+          farm_area: string | null
+          farm_location: string | null
           full_name: string | null
           id: string
           phone: string | null
@@ -24,7 +28,11 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          animal_type?: string | null
+          budget?: string | null
           created_at?: string
+          farm_area?: string | null
+          farm_location?: string | null
           full_name?: string | null
           id?: string
           phone?: string | null
@@ -32,7 +40,11 @@ export type Database = {
           user_id: string
         }
         Update: {
+          animal_type?: string | null
+          budget?: string | null
           created_at?: string
+          farm_area?: string | null
+          farm_location?: string | null
           full_name?: string | null
           id?: string
           phone?: string | null

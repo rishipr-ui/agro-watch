@@ -72,6 +72,10 @@ const Register = () => {
           emailRedirectTo: `${window.location.origin}/dashboard`,
           data: {
             full_name: formData.farmerName,
+            farm_area: formData.farmArea,
+            farm_location: formData.farmLocation,
+            budget: formData.budget,
+            animal_type: formData.animalType,
           }
         }
       });
@@ -93,12 +97,16 @@ const Register = () => {
         return;
       }
 
-      // If user is immediately logged in, update their profile
+      // If user is immediately logged in, update their profile with all farm data
       if (authData.user && authData.session) {
         const { error: profileError } = await supabase
           .from('profiles')
           .update({
             full_name: formData.farmerName,
+            farm_area: formData.farmArea,
+            farm_location: formData.farmLocation,
+            budget: formData.budget,
+            animal_type: formData.animalType,
           })
           .eq('user_id', authData.user.id);
 
